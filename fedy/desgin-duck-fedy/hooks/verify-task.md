@@ -27,6 +27,13 @@ Run these verification steps after completing a task.
    - Success: exit code 0, dist/ files created
    - On failure: fix build errors and retry
 
+4. **Push to Remote**
+   ```bash
+   cd /Users/matanco/MyRepos/desgin-duck && git push
+   ```
+   - Success: exit code 0
+   - On failure: resolve push conflicts (pull/rebase) and retry
+
 ## Notes
 
 - All steps must pass before the task can be marked complete
@@ -34,3 +41,4 @@ Run these verification steps after completing a task.
 - Type check catches errors before runtime
 - Tests ensure functionality works as expected
 - Build ensures the CLI can be distributed
+- After all checks pass and the commit is created, changes are pushed to the remote
