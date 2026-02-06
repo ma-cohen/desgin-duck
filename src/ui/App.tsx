@@ -5,10 +5,10 @@
 
 import { useEffect } from "react";
 import { useRequirementsStore } from "../stores/requirements-store";
-import { RequirementList } from "../components/RequirementList";
+import { RequirementTree } from "../components/RequirementTree";
 
 export function App() {
-  const { mainRequirements, loading, error, loadFromFiles } =
+  const { mainRequirements, derivedRequirements, loading, error, loadFromFiles } =
     useRequirementsStore();
 
   useEffect(() => {
@@ -27,10 +27,11 @@ export function App() {
 
       <main className="mx-auto max-w-5xl px-6 py-8">
         <h2 className="mb-4 text-lg font-semibold text-gray-800">
-          Main Requirements
+          Requirements Traceability
         </h2>
-        <RequirementList
-          requirements={mainRequirements}
+        <RequirementTree
+          mainRequirements={mainRequirements}
+          derivedRequirements={derivedRequirements}
           loading={loading}
           error={error}
         />

@@ -14,5 +14,5 @@
 - [x] Create Zustand requirements store with loadFromFiles() that uses existing file-store reader to load main and derived requirements | e2e: View Requirements UI | depends: Install React, Vite, Tailwind CSS, and Zustand
 - [x] Build RequirementList and RequirementCard components to render main requirements with priority and status badges | e2e: View Requirements UI | depends: Create Zustand requirements store
 - [x] Implement file watcher in src/infrastructure/file-watcher.ts to watch requirements/ for YAML changes and invoke a callback | e2e: Real-time Agent Collaboration
-- [-] Build RequirementTree component to render main requirements with nested derived requirements showing traceability | e2e: View Requirements UI | depends: Build RequirementList and RequirementCard components
+- [x] Build RequirementTree component to render main requirements with nested derived requirements showing traceability | e2e: View Requirements UI | depends: Build RequirementList and RequirementCard components
 - [ ] Integrate file watcher into Zustand store to auto-reload requirements when YAML files change on disk | e2e: Real-time Agent Collaboration | depends: Implement file watcher, Create Zustand requirements store
