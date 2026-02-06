@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import { useRequirementsStore } from "./requirements-store";
+import { useRequirementsStore, _getWatcherInternals } from "./requirements-store";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -324,4 +324,96 @@ describe("useRequirementsStore", () => {
       status: "draft",
     });
   });
+
+  // --- Watching state ---
+
+  test("has watching=false in initial state", () => {
+    const state = useRequirementsStore.getState();
+    expect(state.watching).toBe(false);
+  });
+
+  test("startWatching() sets watching to true", () => {
+    stubFetch(VALID_MAIN_YAML, VALID_DERIVED_YAML);
+    useRequirementsStore.getState().startWatching();
+
+    expect(useRequirementsStore.getState().watching).toBe(true);
+  });
+
+  test("stopWatching() sets watching to false", () => {
+    stubFetch(VALID_MAIN_YAML, VALID_DERIVED_YAML);
+    useRequirementsStore.getState().startWatching();
+    useRequirementsStore.getState().stopWatching();
+
+    expect(useRequirementsStore.getState().watching).toBe(false);
+  });
+
+  test("startWatching() is a no-op when already watching", () => {
+    stubFetch(VALID_MAIN_YAML, VALID_DERIVED_YAML);
+    useRequirementsStore.getState().startWatching();
+    const { pollingTimer: firstTimer } = _getWatcherInternals();
+
+    // Call again — should not create a new timer
+    useRequirementsStore.getState().startWatching();
+    const { pollingTimer: secondTimer } = _getWatcherInternals();
+
+    expect(useRequirementsStore.getState().watching).toBe(true);
+    // Timer reference should be the same (no new timer created)
+    expect(secondTimer).toBe(firstTimer);
+  });
+
+  test("stopWatching() is a no-op when not watching", () => {
+    // Should not throw
+    useRequirementsStore.getState().stopWatching();
+    expect(useRequirementsStore.getState().watching).toBe(false);
+  });
+
+  test("startWatching() falls back to polling when HMR is not available", () => {
+    stubFetch(VALID_MAIN_YAML, VALID_DERIVED_YAML);
+    useRequirementsStore.getState().startWatching({ intervalMs: 5000 });
+
+    const { pollingTimer } = _getWatcherInternals();
+    expect(pollingTimer).not.toBeNull();
+
+    // Cleanup
+    useRequirementsStore.getState().stopWatching();
+  });
+
+  test("stopWatching() clears polling timer", () => {
+    stubFetch(VALID_MAIN_YAML, VALID_DERIVED_YAML);
+    useRequirementsStore.getState().startWatching();
+
+    const { pollingTimer: before } = _getWatcherInternals();
+    expect(before).not.toBeNull();
+
+    useRequirementsStore.getState().stopWatching();
+
+    const { pollingTimer: after } = _getWatcherInternals();
+    expect(after).toBeNull();
+  });
+
+  test("polling calls loadFromFiles periodically", async () => {
+    const fetchMock = stubFetch(VALID_MAIN_YAML, VALID_DERIVED_YAML);
+
+    useRequirementsStore.getState().startWatching({
+      intervalMs: 50,
+      requirementsPath: "/test-requirements",
+    });
+
+    // Wait for at least one polling cycle
+    await sleep(120);
+
+    // fetchMock should have been called by the polling (beyond any initial calls)
+    const callCount = fetchMock.mock.calls.length;
+    expect(callCount).toBeGreaterThanOrEqual(2); // At least one polling cycle
+
+    // Verify it used the custom path
+    const urls = fetchMock.mock.calls.map((c) => c[0] as string);
+    expect(urls.some((u) => u.includes("/test-requirements/"))).toBe(true);
+
+    useRequirementsStore.getState().stopWatching();
+  });
 });
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

@@ -8,13 +8,25 @@ import { useRequirementsStore } from "../stores/requirements-store";
 import { RequirementTree } from "../components/RequirementTree";
 
 export function App() {
-  const { mainRequirements, derivedRequirements, loading, error, loadFromFiles } =
-    useRequirementsStore();
+  const {
+    mainRequirements,
+    derivedRequirements,
+    loading,
+    error,
+    loadFromFiles,
+    startWatching,
+    stopWatching,
+  } = useRequirementsStore();
 
   useEffect(() => {
     console.log("[design-duck:ui] App mounted, loading requirements");
     loadFromFiles();
-  }, [loadFromFiles]);
+    startWatching();
+
+    return () => {
+      stopWatching();
+    };
+  }, [loadFromFiles, startWatching, stopWatching]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
