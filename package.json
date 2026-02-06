@@ -1,0 +1,24 @@
+{
+  "name": "design-duck",
+  "version": "0.1.0",
+  "description": "Requirements gathering and management tool",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "design-duck": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "bun build src/cli.ts --outdir=dist --target=node",
+    "start": "bun run src/cli.ts",
+    "test": "bun test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["requirements", "yaml", "cli"],
+  "license": "MIT",
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  }
+}
