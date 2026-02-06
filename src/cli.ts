@@ -5,6 +5,8 @@
  */
 
 import { init } from "./commands/init";
+import { ui } from "./commands/ui";
+import { validate } from "./commands/validate";
 
 export const COMMANDS = ["init", "ui", "validate"] as const;
 type Command = (typeof COMMANDS)[number];
@@ -24,11 +26,11 @@ function cmdInit(): void {
 }
 
 function cmdUi(): void {
-  console.log("ui: stub – will start local server and open UI");
+  ui();
 }
 
 function cmdValidate(): void {
-  console.log("validate: stub – will validate requirement files against schema");
+  validate();
 }
 
 function main(): void {
