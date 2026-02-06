@@ -2830,6 +2830,50 @@ function assertDerivedRequirement(raw) {
 }
 
 // src/infrastructure/file-store.ts
+function parseMainRequirementsYaml(content) {
+  const parsed = load(content);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("main.yaml must contain a YAML object");
+  }
+  const file = parsed;
+  if (!Array.isArray(file.requirements)) {
+    throw new Error("main.yaml must have a 'requirements' array");
+  }
+  const requirements = [];
+  for (let i2 = 0;i2 < file.requirements.length; i2++) {
+    const raw = file.requirements[i2];
+    try {
+      assertMainRequirement(raw);
+      requirements.push(raw);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`main.yaml requirement at index ${i2}: ${msg}`);
+    }
+  }
+  return requirements;
+}
+function parseDerivedRequirementsYaml(content) {
+  const parsed = load(content);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("derived.yaml must contain a YAML object");
+  }
+  const file = parsed;
+  if (!Array.isArray(file.requirements)) {
+    throw new Error("derived.yaml must have a 'requirements' array");
+  }
+  const requirements = [];
+  for (let i2 = 0;i2 < file.requirements.length; i2++) {
+    const raw = file.requirements[i2];
+    try {
+      assertDerivedRequirement(raw);
+      requirements.push(raw);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`derived.yaml requirement at index ${i2}: ${msg}`);
+    }
+  }
+  return requirements;
+}
 function readMainRequirements(requirementsDir) {
   const filePath = join2(requirementsDir, "main.yaml");
   if (process.env.DEBUG) {
@@ -2840,25 +2884,7 @@ function readMainRequirements(requirementsDir) {
     if (process.env.DEBUG) {
       console.error(`[file-store] Read ${content.length} bytes from main.yaml`);
     }
-    const parsed = load(content);
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error("main.yaml must contain a YAML object");
-    }
-    const file = parsed;
-    if (!Array.isArray(file.requirements)) {
-      throw new Error("main.yaml must have a 'requirements' array");
-    }
-    const requirements = [];
-    for (let i2 = 0;i2 < file.requirements.length; i2++) {
-      const raw = file.requirements[i2];
-      try {
-        assertMainRequirement(raw);
-        requirements.push(raw);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        throw new Error(`main.yaml requirement at index ${i2}: ${msg}`);
-      }
-    }
+    const requirements = parseMainRequirementsYaml(content);
     if (process.env.DEBUG) {
       console.error(`[file-store] Successfully parsed ${requirements.length} main requirements`);
     }
@@ -2880,25 +2906,7 @@ function readDerivedRequirements(requirementsDir) {
     if (process.env.DEBUG) {
       console.error(`[file-store] Read ${content.length} bytes from derived.yaml`);
     }
-    const parsed = load(content);
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error("derived.yaml must contain a YAML object");
-    }
-    const file = parsed;
-    if (!Array.isArray(file.requirements)) {
-      throw new Error("derived.yaml must have a 'requirements' array");
-    }
-    const requirements = [];
-    for (let i2 = 0;i2 < file.requirements.length; i2++) {
-      const raw = file.requirements[i2];
-      try {
-        assertDerivedRequirement(raw);
-        requirements.push(raw);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        throw new Error(`derived.yaml requirement at index ${i2}: ${msg}`);
-      }
-    }
+    const requirements = parseDerivedRequirementsYaml(content);
     if (process.env.DEBUG) {
       console.error(`[file-store] Successfully parsed ${requirements.length} derived requirements`);
     }
