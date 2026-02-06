@@ -22,25 +22,26 @@ const FILES = [
 ] as const;
 
 export function init(targetDir: string = process.cwd()): void {
-  const reqDir = join(targetDir, "requirements");
+  const duckDir = join(targetDir, "desgin-duck");
+  const reqDir = join(duckDir, "requirements");
 
   if (process.env.DEBUG) {
     console.error("[design-duck:init] targetDir:", targetDir);
   }
 
   if (existsSync(reqDir)) {
-    console.error("requirements/ already exists. Aborting init.");
+    console.error("desgin-duck/requirements/ already exists. Aborting init.");
     process.exitCode = 1;
     return;
   }
 
   mkdirSync(reqDir, { recursive: true });
-  console.log("Created requirements/");
+  console.log("Created desgin-duck/requirements/");
 
   for (const file of FILES) {
     const filePath = join(reqDir, file.name);
     writeFileSync(filePath, file.content, "utf-8");
-    console.log(`  Created requirements/${file.name}`);
+    console.log(`  Created desgin-duck/requirements/${file.name}`);
   }
 
   if (!existsSync(join(targetDir, ".git"))) {
@@ -54,5 +55,5 @@ export function init(targetDir: string = process.cwd()): void {
     console.error("[design-duck:init] git repo already exists, skipping git init");
   }
 
-  console.log("\nDesign Duck initialized. Start adding requirements to main.yaml.");
+  console.log("\nDesign Duck initialized. Start adding requirements to desgin-duck/requirements/main.yaml.");
 }

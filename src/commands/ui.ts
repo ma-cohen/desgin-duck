@@ -1,7 +1,7 @@
 /**
  * Starts the Design Duck UI server.
  *
- * Serves pre-built static UI files and the consumer's requirements/ YAML
+ * Serves pre-built static UI files and the consumer's desgin-duck/requirements/ YAML
  * files from a built-in HTTP server. No Vite or build tooling needed.
  */
 
@@ -39,11 +39,11 @@ export function ui(): void {
     console.error("[design-duck:ui] Starting UI server");
   }
 
-  const requirementsDir = join(process.cwd(), "requirements");
+  const requirementsDir = join(process.cwd(), "desgin-duck", "requirements");
 
   if (!existsSync(requirementsDir)) {
     console.error(
-      "requirements/ directory not found. Run 'design-duck init' first.",
+      "desgin-duck/requirements/ directory not found. Run 'design-duck init' first.",
     );
     process.exitCode = 1;
     return;

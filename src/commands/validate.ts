@@ -3,14 +3,14 @@ import { join } from "node:path";
 import { readMainRequirements, readDerivedRequirements } from "../infrastructure/file-store";
 
 /**
- * Validates all requirement files in the requirements/ directory.
+ * Validates all requirement files in the desgin-duck/requirements/ directory.
  * Reports validation errors to stdout.
  * 
- * @param targetDir - Directory containing requirements/ folder (defaults to cwd)
+ * @param targetDir - Directory containing desgin-duck/requirements/ folder (defaults to cwd)
  * @returns void - exits with code 1 if validation fails, 0 if successful
  */
 export function validate(targetDir: string = process.cwd()): void {
-  const reqDir = join(targetDir, "requirements");
+  const reqDir = join(targetDir, "desgin-duck", "requirements");
 
   if (process.env.DEBUG) {
     console.error("[design-duck:validate] targetDir:", targetDir);
@@ -19,7 +19,7 @@ export function validate(targetDir: string = process.cwd()): void {
 
   // Check if requirements directory exists
   if (!existsSync(reqDir)) {
-    console.error("Error: requirements/ directory not found.");
+    console.error("Error: desgin-duck/requirements/ directory not found.");
     console.error("Run 'design-duck init' first to create the requirements structure.");
     process.exitCode = 1;
     return;

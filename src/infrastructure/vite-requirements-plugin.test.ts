@@ -12,7 +12,7 @@ describe("requirementsWatcherPlugin", () => {
     expect(typeof plugin.configureServer).toBe("function");
   });
 
-  test("configureServer warns when requirements/ dir does not exist", () => {
+  test("configureServer warns when desgin-duck/requirements/ dir does not exist", () => {
     const plugin = requirementsWatcherPlugin();
     const warnSpy = mock(() => {});
     const originalWarn = console.warn;
@@ -29,14 +29,14 @@ describe("requirementsWatcherPlugin", () => {
 
     expect(warnSpy).toHaveBeenCalled();
     const warnMsg = (warnSpy.mock.calls as unknown[][])[0][0] as string;
-    expect(warnMsg).toContain("requirements/ directory not found");
+    expect(warnMsg).toContain("desgin-duck/requirements/ directory not found");
 
     console.warn = originalWarn;
   });
 
-  test("configureServer sets up watcher when requirements/ dir exists", () => {
+  test("configureServer sets up watcher when desgin-duck/requirements/ dir exists", () => {
     const testDir = join(tmpdir(), `vite-plugin-test-${Date.now()}`);
-    const reqDir = join(testDir, "requirements");
+    const reqDir = join(testDir, "desgin-duck", "requirements");
     mkdirSync(reqDir, { recursive: true });
 
     try {
@@ -62,7 +62,7 @@ describe("requirementsWatcherPlugin", () => {
 
   test("sends HMR event when a YAML file changes", async () => {
     const testDir = join(tmpdir(), `vite-plugin-hmr-test-${Date.now()}`);
-    const reqDir = join(testDir, "requirements");
+    const reqDir = join(testDir, "desgin-duck", "requirements");
     mkdirSync(reqDir, { recursive: true });
 
     try {

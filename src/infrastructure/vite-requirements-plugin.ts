@@ -1,5 +1,5 @@
 /**
- * Vite plugin that watches the requirements/ directory for YAML changes
+ * Vite plugin that watches the desgin-duck/requirements/ directory for YAML changes
  * and notifies the browser via HMR custom events.
  *
  * Uses the existing file-watcher infrastructure to detect filesystem changes
@@ -13,7 +13,7 @@ import { watchRequirementsDir } from "./file-watcher";
 import type { Plugin } from "vite";
 
 /**
- * Creates a Vite plugin that watches the requirements/ directory
+ * Creates a Vite plugin that watches the desgin-duck/requirements/ directory
  * and sends HMR events when YAML files change.
  *
  * @returns Vite plugin instance
@@ -33,11 +33,11 @@ export function requirementsWatcherPlugin(): Plugin {
     name: "design-duck-requirements-watcher",
 
     configureServer(server) {
-      const requirementsDir = join(server.config.root, "requirements");
+      const requirementsDir = join(server.config.root, "desgin-duck", "requirements");
 
       if (!existsSync(requirementsDir)) {
         console.warn(
-          "[design-duck:vite] requirements/ directory not found, skipping file watcher",
+          "[design-duck:vite] desgin-duck/requirements/ directory not found, skipping file watcher",
         );
         return;
       }
