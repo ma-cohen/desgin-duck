@@ -1,19 +1,21 @@
 /**
  * Zustand store for managing requirements state.
  *
- * Fetches main.yaml and derived.yaml over HTTP (served by Vite dev server),
- * then parses and validates them using the shared file-store parsing logic.
+ * Fetches main.yaml and derived.yaml over HTTP (served by the built-in
+ * Design Duck server), then parses and validates them using the shared
+ * file-store parsing logic.
  *
  * Supports auto-reload via file watching:
- * - In Vite dev mode: listens for HMR custom events from the requirements watcher plugin
- * - Fallback: polls at a configurable interval
+ * - Primary: connects to the server's SSE endpoint (/events) for instant
+ *   notifications when YAML files change on disk
+ * - Fallback: polls at a configurable interval if SSE is unavailable
  */
 
 import { create } from "zustand";
 import {
   parseMainRequirementsYaml,
   parseDerivedRequirementsYaml,
-} from "../infrastructure/file-store";
+} from "../infrastructure/yaml-parser";
 import type {
   MainRequirement,
   DerivedRequirement,
@@ -22,7 +24,7 @@ import type {
 /** Options for configuring file watching behavior. */
 export interface WatchOptions {
   /**
-   * Polling interval in milliseconds. Only used when Vite HMR is not available.
+   * Polling interval in milliseconds. Used as fallback when SSE is unavailable.
    * @default 2000
    */
   intervalMs?: number;
@@ -31,6 +33,11 @@ export interface WatchOptions {
    * @default "/requirements"
    */
   requirementsPath?: string;
+  /**
+   * SSE endpoint URL for real-time file change notifications.
+   * @default "/events"
+   */
+  eventsUrl?: string;
 }
 
 export interface RequirementsState {
@@ -50,13 +57,14 @@ export interface RequirementsState {
    * and replaces the current store state with the result.
    *
    * @param requirementsPath - URL path prefix where the YAML files are served.
-   *   Defaults to "/requirements" (Vite dev server serves from project root).
+   *   Defaults to "/requirements" (served by the built-in Design Duck server).
    */
   loadFromFiles: (requirementsPath?: string) => Promise<void>;
 
   /**
    * Starts watching for requirement file changes.
-   * Uses Vite HMR events when available (dev mode), falls back to polling.
+   * Connects to the server's SSE endpoint for instant notifications,
+   * falls back to polling if SSE is unavailable.
    *
    * Safe to call multiple times — subsequent calls are no-ops while watching.
    */
@@ -74,11 +82,11 @@ export interface RequirementsState {
 // ---------------------------------------------------------------------------
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null;
-let hmrCleanup: (() => void) | null = null;
+let eventSource: EventSource | null = null;
 
 /** Exported for testing — returns current internal watcher state. */
 export function _getWatcherInternals() {
-  return { pollingTimer, hmrCleanup };
+  return { pollingTimer, eventSource };
 }
 
 // ---------------------------------------------------------------------------
@@ -144,51 +152,61 @@ export const useRequirementsStore = create<RequirementsState>()((set, get) => ({
       return;
     }
 
-    const { intervalMs = 2000, requirementsPath = "/requirements" } =
-      options ?? {};
+    const {
+      intervalMs = 2000,
+      requirementsPath = "/requirements",
+      eventsUrl = "/events",
+    } = options ?? {};
 
     console.log("[design-duck:store] Starting file watcher integration");
 
-    // Try Vite HMR first (available in dev mode with the requirements watcher plugin)
-    const hot = (import.meta as unknown as Record<string, unknown>).hot as
-      | {
-          on: (event: string, cb: (data: unknown) => void) => void;
-          dispose: (cb: () => void) => void;
-        }
-      | undefined;
-
-    if (hot) {
-      console.log(
-        "[design-duck:store] Using Vite HMR for real-time file watching",
-      );
-
-      const handler = () => {
+    // Try SSE first (available when served by the Design Duck UI server)
+    if (typeof EventSource !== "undefined") {
+      try {
         console.log(
-          "[design-duck:store] HMR event received, reloading requirements",
+          `[design-duck:store] Connecting to SSE endpoint: ${eventsUrl}`,
         );
-        get().loadFromFiles(requirementsPath);
-      };
 
-      hot.on("design-duck:requirements-changed", handler);
+        const es = new EventSource(eventsUrl);
 
-      hmrCleanup = () => {
-        // Vite HMR listeners are cleaned up via dispose
-      };
+        es.addEventListener("requirements-changed", () => {
+          console.log(
+            "[design-duck:store] SSE event received, reloading requirements",
+          );
+          get().loadFromFiles(requirementsPath);
+        });
 
-      hot.dispose(() => {
-        hmrCleanup = null;
-      });
-    } else {
-      // Fallback: poll at regular intervals
-      console.log(
-        `[design-duck:store] Vite HMR not available, polling every ${intervalMs}ms`,
-      );
+        es.addEventListener("connected", () => {
+          console.log(
+            "[design-duck:store] SSE connected to server",
+          );
+        });
 
-      pollingTimer = setInterval(() => {
-        console.log("[design-duck:store] Polling for requirement changes");
-        get().loadFromFiles(requirementsPath);
-      }, intervalMs);
+        es.onerror = () => {
+          console.warn(
+            "[design-duck:store] SSE connection error, will retry automatically",
+          );
+        };
+
+        eventSource = es;
+        set({ watching: true });
+        return;
+      } catch {
+        console.warn(
+          "[design-duck:store] SSE failed, falling back to polling",
+        );
+      }
     }
+
+    // Fallback: poll at regular intervals
+    console.log(
+      `[design-duck:store] SSE not available, polling every ${intervalMs}ms`,
+    );
+
+    pollingTimer = setInterval(() => {
+      console.log("[design-duck:store] Polling for requirement changes");
+      get().loadFromFiles(requirementsPath);
+    }, intervalMs);
 
     set({ watching: true });
   },
@@ -200,14 +218,14 @@ export const useRequirementsStore = create<RequirementsState>()((set, get) => ({
 
     console.log("[design-duck:store] Stopping file watcher integration");
 
+    if (eventSource !== null) {
+      eventSource.close();
+      eventSource = null;
+    }
+
     if (pollingTimer !== null) {
       clearInterval(pollingTimer);
       pollingTimer = null;
-    }
-
-    if (hmrCleanup !== null) {
-      hmrCleanup();
-      hmrCleanup = null;
     }
 
     set({ watching: false });

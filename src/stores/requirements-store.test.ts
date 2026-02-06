@@ -85,11 +85,17 @@ describe("useRequirementsStore", () => {
       derivedRequirements: [],
       loading: false,
       error: null,
+      watching: false,
     });
+
+    // Ensure watcher is stopped between tests
+    useRequirementsStore.getState().stopWatching();
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    // Clean up any active watchers
+    useRequirementsStore.getState().stopWatching();
   });
 
   // --- Initial state ---
@@ -367,8 +373,10 @@ describe("useRequirementsStore", () => {
     expect(useRequirementsStore.getState().watching).toBe(false);
   });
 
-  test("startWatching() falls back to polling when HMR is not available", () => {
+  test("startWatching() falls back to polling when SSE is not available", () => {
     stubFetch(VALID_MAIN_YAML, VALID_DERIVED_YAML);
+
+    // Bun test environment doesn't have EventSource, so it should fall back to polling
     useRequirementsStore.getState().startWatching({ intervalMs: 5000 });
 
     const { pollingTimer } = _getWatcherInternals();
