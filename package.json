@@ -20,5 +20,8 @@
   "devDependencies": {
     "bun-types": "latest",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
   }
 }
