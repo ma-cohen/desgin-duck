@@ -146,6 +146,158 @@ requirements:
 
     expect(() => readMainRequirements(testDir)).toThrow(/requirement at index 1/);
   });
+
+  test("throws error when file is empty", () => {
+    writeFileSync(join(testDir, "main.yaml"), "", "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/must contain a YAML object/);
+  });
+
+  test("throws error when file contains only whitespace", () => {
+    writeFileSync(join(testDir, "main.yaml"), "   \n\n  \n", "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/must contain a YAML object/);
+  });
+
+  test("throws error when file contains only comments", () => {
+    writeFileSync(join(testDir, "main.yaml"), "# just a comment\n# another comment\n", "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/must contain a YAML object/);
+  });
+
+  test("accepts all valid priority values", () => {
+    for (const priority of ["high", "medium", "low"] as const) {
+      const yaml = `requirements:
+  - id: req-001
+    description: x
+    userValue: y
+    priority: ${priority}
+    status: draft
+`;
+      writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+      const reqs = readMainRequirements(testDir);
+      expect(reqs).toHaveLength(1);
+      expect(reqs[0].priority).toBe(priority);
+    }
+  });
+
+  test("accepts all valid status values", () => {
+    for (const status of ["draft", "review", "approved"] as const) {
+      const yaml = `requirements:
+  - id: req-001
+    description: x
+    userValue: y
+    priority: high
+    status: ${status}
+`;
+      writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+      const reqs = readMainRequirements(testDir);
+      expect(reqs).toHaveLength(1);
+      expect(reqs[0].status).toBe(status);
+    }
+  });
+
+  test("accepts requirement with extra fields (ignores them)", () => {
+    const yaml = `requirements:
+  - id: req-001
+    description: x
+    userValue: y
+    priority: high
+    status: draft
+    extraField: should be ignored
+    notes: also ignored
+`;
+    writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+    const reqs = readMainRequirements(testDir);
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0].id).toBe("req-001");
+  });
+
+  test("throws error when id is missing entirely", () => {
+    const yaml = `requirements:
+  - description: x
+    userValue: y
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/requirement at index 0/);
+    expect(() => readMainRequirements(testDir)).toThrow(/id/);
+  });
+
+  test("throws error when description is missing", () => {
+    const yaml = `requirements:
+  - id: req-001
+    userValue: y
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/requirement at index 0/);
+    expect(() => readMainRequirements(testDir)).toThrow(/description/);
+  });
+
+  test("throws error when status is invalid", () => {
+    const yaml = `requirements:
+  - id: req-001
+    description: x
+    userValue: y
+    priority: high
+    status: completed
+`;
+    writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/requirement at index 0/);
+    expect(() => readMainRequirements(testDir)).toThrow(/status/);
+  });
+
+  test("throws error when id is a number instead of string", () => {
+    const yaml = `requirements:
+  - id: 123
+    description: x
+    userValue: y
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/requirement at index 0/);
+    expect(() => readMainRequirements(testDir)).toThrow(/id/);
+  });
+
+  test("throws error with multiple validation failures in one requirement", () => {
+    const yaml = `requirements:
+  - id: ""
+    description: ""
+    userValue: ""
+    priority: invalid
+    status: invalid
+`;
+    writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+    expect(() => readMainRequirements(testDir)).toThrow(/requirement at index 0/);
+  });
+
+  test("parses YAML with inline comments", () => {
+    const yaml = `# Main requirements file
+requirements:
+  - id: req-001 # first requirement
+    description: Search products
+    userValue: Faster search
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "main.yaml"), yaml, "utf-8");
+
+    const reqs = readMainRequirements(testDir);
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0].id).toBe("req-001");
+  });
 });
 
 describe("readDerivedRequirements", () => {
@@ -314,5 +466,174 @@ requirements:
     writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
 
     expect(() => readDerivedRequirements(testDir)).toThrow(/requirement at index 1/);
+  });
+
+  test("throws error when file is empty", () => {
+    writeFileSync(join(testDir, "derived.yaml"), "", "utf-8");
+
+    expect(() => readDerivedRequirements(testDir)).toThrow(/must contain a YAML object/);
+  });
+
+  test("throws error when file contains only whitespace", () => {
+    writeFileSync(join(testDir, "derived.yaml"), "  \n\n  \n", "utf-8");
+
+    expect(() => readDerivedRequirements(testDir)).toThrow(/must contain a YAML object/);
+  });
+
+  test("accepts all valid category values", () => {
+    for (const category of ["technical", "operational", "quality", "constraint"] as const) {
+      const yaml = `requirements:
+  - id: der-001
+    description: x
+    derivedFrom:
+      - req-001
+    rationale: y
+    category: ${category}
+    priority: high
+    status: draft
+`;
+      writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+      const reqs = readDerivedRequirements(testDir);
+      expect(reqs).toHaveLength(1);
+      expect(reqs[0].category).toBe(category);
+    }
+  });
+
+  test("accepts empty derivedFrom array", () => {
+    const yaml = `requirements:
+  - id: der-001
+    description: x
+    derivedFrom: []
+    rationale: y
+    category: technical
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    const reqs = readDerivedRequirements(testDir);
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0].derivedFrom).toEqual([]);
+  });
+
+  test("parses valid derived.yaml with multiple requirements", () => {
+    const yaml = `requirements:
+  - id: der-001
+    description: Use Elasticsearch
+    derivedFrom:
+      - req-001
+    rationale: Sub-200ms search
+    category: technical
+    priority: high
+    status: draft
+  - id: der-002
+    description: Use React with TypeScript
+    derivedFrom:
+      - req-001
+      - req-002
+    rationale: Team expertise
+    category: operational
+    priority: high
+    status: approved
+`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    const reqs = readDerivedRequirements(testDir);
+    expect(reqs).toHaveLength(2);
+    expect(reqs[0].id).toBe("der-001");
+    expect(reqs[0].category).toBe("technical");
+    expect(reqs[1].id).toBe("der-002");
+    expect(reqs[1].category).toBe("operational");
+    expect(reqs[1].status).toBe("approved");
+  });
+
+  test("throws error when rationale is missing", () => {
+    const yaml = `requirements:
+  - id: der-001
+    description: x
+    derivedFrom:
+      - req-001
+    category: technical
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    expect(() => readDerivedRequirements(testDir)).toThrow(/requirement at index 0/);
+    expect(() => readDerivedRequirements(testDir)).toThrow(/rationale/);
+  });
+
+  test("throws error when derivedFrom is missing entirely", () => {
+    const yaml = `requirements:
+  - id: der-001
+    description: x
+    rationale: y
+    category: technical
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    expect(() => readDerivedRequirements(testDir)).toThrow(/requirement at index 0/);
+    expect(() => readDerivedRequirements(testDir)).toThrow(/derivedFrom/);
+  });
+
+  test("throws error when id is a number instead of string", () => {
+    const yaml = `requirements:
+  - id: 42
+    description: x
+    derivedFrom:
+      - req-001
+    rationale: y
+    category: technical
+    priority: high
+    status: draft
+`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    expect(() => readDerivedRequirements(testDir)).toThrow(/requirement at index 0/);
+    expect(() => readDerivedRequirements(testDir)).toThrow(/id/);
+  });
+
+  test("throws error with multiple validation failures in one requirement", () => {
+    const yaml = `requirements:
+  - id: ""
+    description: ""
+    derivedFrom: "not-an-array"
+    rationale: ""
+    category: invalid
+    priority: invalid
+    status: invalid
+`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    expect(() => readDerivedRequirements(testDir)).toThrow(/requirement at index 0/);
+  });
+
+  test("accepts requirement with extra fields (ignores them)", () => {
+    const yaml = `requirements:
+  - id: der-001
+    description: x
+    derivedFrom:
+      - req-001
+    rationale: y
+    category: technical
+    priority: high
+    status: draft
+    notes: should be ignored
+`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    const reqs = readDerivedRequirements(testDir);
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0].id).toBe("der-001");
+  });
+
+  test("throws error when requirements is not an array", () => {
+    const yaml = `requirements: "not an array"`;
+    writeFileSync(join(testDir, "derived.yaml"), yaml, "utf-8");
+
+    expect(() => readDerivedRequirements(testDir)).toThrow(/must have a 'requirements' array/);
   });
 });
